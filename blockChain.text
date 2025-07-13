@@ -1,0 +1,57 @@
+Blockchain initialized and Genesis Block created:  Blockchain {
+  chain: [
+    {
+      index: 1,
+      timestamp: 1752367073482,
+      transactions: [],
+      nonce: 100,
+      hash: '0',
+      previousBlockHash: '0'
+    }
+  ],
+  pendingTransactions: []
+}
+
+Mining a new Block:
+
+Current block's data: (all pending transactions become new block's Transaction and index up by 1) :
+ 	{ 
+	transactions: [], 
+	index: 2 
+	}
+
+computed proof of work: (hash that gives 4 leading zeros - based on previous block's hash and data - transactions and index): 
+	18140
+hash of the proposed new block: (hash based on previous block's hash, data - transactions and index, and nonce) :
+	0000b9135b054d1131392c9eb9d03b0111d4b516824a03c35639e12858912100
+Pending Transaction at this stage - with reward transaction 
+	[
+  		{
+    		amount: 12.5,
+    		sender: '000',
+    		recipient: '5f70ece611394b9ca15af477a55a77d8'
+  		}
+	]
+
+ii. After creating a new block:  Blockchain :
+	{
+  	chain: 	[
+    			{
+      			index: 1,
+      			timestamp: 1752367073482,
+      			transactions: [],
+      			nonce: 100,
+      			hash: '0',
+      			previousBlockHash: '0'
+    			},
+    			{
+      			index: 2,
+      			timestamp: 1752367101591,
+      			transactions: [Array], // contains the reward transaction now
+      			nonce: 18140,
+      			hash: '0000b9135b054d1131392c9eb9d03b0111d4b516824a03c35639e12858912100',
+      			previousBlockHash: '0'
+    			}
+  		],
+  	pendingTransactions: []
+	}
