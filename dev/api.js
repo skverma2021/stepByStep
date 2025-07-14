@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const memRoutes = require('./routes/memRoutes');
 
-const PORT = 3000;
+const PORT = process.argv[2];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
