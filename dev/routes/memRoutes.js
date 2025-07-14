@@ -12,10 +12,40 @@ router.get('/blockchain', (req, res) => {
   res.send(bitcoin)
 });
 
-router.post('/transaction', (req, res) => {
-  const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient)
-  res.json({ msg: `the Transaction will be added to Block Number ${blockIndex}` })
-})
+// create a new transaction
+router.post('/transaction', function(req, res) {
+	const newTransaction = req.body;
+	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+	res.json({ note: `Transaction will be added in block ${blockIndex}.` });
+});
+
+router.post('/transaction/broadcast', async function (req, res) {
+	try {
+		// Create a new transaction
+		const newTransaction = bitcoin.createNewTransaction(
+			req.body.amount,
+			req.body.sender,
+			req.body.recipient
+		);
+
+		// Add the transaction to the current node's pending transactions
+		bitcoin.addTransactionToPendingTransactions(newTransaction);
+
+		// Prepare POST requests to all other nodes in the network
+		const broadcastPromises = bitcoin.networkNodes.map(networkNodeUrl => {
+      // console.log(networkNodeUrl + '/transaction')
+			return axios.post(networkNodeUrl + '/transaction', newTransaction);
+		});
+
+		// Wait for all requests to finish
+		await Promise.all(broadcastPromises);
+
+		res.json({ note: 'Transaction created and broadcast successfully.' });
+	} catch (error) {
+		console.error('Broadcast failed:', error.message);
+		res.status(500).json({ note: 'Transaction broadcast failed.', error: error.message });
+	}
+});
 
 // nonce, prevBlockHash, hash
 router.get('/mine', async function (req, res) {
@@ -58,33 +88,6 @@ router.get('/mine', async function (req, res) {
   }
 });
 
-router.post('/transaction/broadcast', async function (req, res) {
-	try {
-		// Create a new transaction
-		const newTransaction = bitcoin.createNewTransaction(
-			req.body.amount,
-			req.body.sender,
-			req.body.recipient
-		);
-
-		// Add the transaction to the current node's pending transactions
-		bitcoin.addTransactionToPendingTransactions(newTransaction);
-
-		// Prepare POST requests to all other nodes in the network
-		const broadcastPromises = bitcoin.networkNodes.map(networkNodeUrl => {
-			return axios.post(networkNodeUrl + '/transaction', newTransaction);
-		});
-
-		// Wait for all requests to finish
-		await Promise.all(broadcastPromises);
-
-		res.json({ note: 'Transaction created and broadcast successfully.' });
-	} catch (error) {
-		console.error('Broadcast failed:', error.message);
-		res.status(500).json({ note: 'Transaction broadcast failed.', error: error.message });
-	}
-});
-
 // receive new block
 router.post('/receive-new-block', function(req, res) {
 	const newBlock = req.body.newBlock;
@@ -106,7 +109,6 @@ router.post('/receive-new-block', function(req, res) {
 		});
 	}
 });
-
 
 router.post('/register-and-broadcast-node', async function (req, res) {
   try {
@@ -149,7 +151,6 @@ router.post('/register-node', function (req, res) {
   if (nodeNotAlreadyPresent && notCurrentNode) bitcoin.networkNodes.push(newNodeUrl);
   res.json({ note: 'New node registered successfully.' });
 });
-
 
 // register multiple nodes at once
 router.post('/register-nodes-bulk', function (req, res) {
