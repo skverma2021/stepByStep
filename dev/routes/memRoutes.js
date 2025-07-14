@@ -164,4 +164,83 @@ router.post('/register-nodes-bulk', function (req, res) {
   res.json({ note: 'Bulk registration successful.' });
 });
 
+// Consensus
+router.get('/consensus', async function (req, res) {
+  try {
+    // Fetch the blockchain data from all network peers
+    const requestPromises = bitcoin.networkNodes.map(networkNodeUrl =>
+      axios.get(networkNodeUrl + '/blockchain')
+    );
+
+    const responses = await Promise.all(requestPromises);
+    const blockchains = responses.map(response => response.data);
+
+    const currentChainLength = bitcoin.chain.length;
+    let maxChainLength = currentChainLength;
+    let newLongestChain = null;
+    let newPendingTransactions = null;
+
+    // Find the longest valid chain among peers
+    blockchains.forEach(blockchain => {
+      if (blockchain.chain.length > maxChainLength) {
+        maxChainLength = blockchain.chain.length;
+        newLongestChain = blockchain.chain;
+        newPendingTransactions = blockchain.pendingTransactions;
+      }
+    });
+
+    // Decide whether to replace the chain
+    if (!newLongestChain || !bitcoin.chainIsValid(newLongestChain)) {
+      res.json({
+        note: 'Current chain has not been replaced.',
+        chain: bitcoin.chain
+      });
+    } else {
+      bitcoin.chain = newLongestChain;
+      bitcoin.pendingTransactions = newPendingTransactions;
+      res.json({
+        note: 'This chain has been replaced.',
+        chain: bitcoin.chain
+      });
+    }
+  } catch (error) {
+    console.error('Consensus error:', error.message);
+    res.status(500).json({ note: 'Consensus failed.', error: error.message });
+  }
+});
+
+// get block by blockHash
+router.get('/block/:blockHash', function(req, res) { 
+	const blockHash = req.params.blockHash;
+	const correctBlock = bitcoin.getBlock(blockHash);
+	res.json({
+		block: correctBlock
+	});
+});
+
+// get transaction by transactionId
+router.get('/transaction/:transactionId', function(req, res) {
+	const transactionId = req.params.transactionId;
+	const trasactionData = bitcoin.getTransaction(transactionId);
+	res.json({
+		transaction: trasactionData.transaction,
+		block: trasactionData.block
+	});
+});
+
+// get address by address
+router.get('/address/:address', function(req, res) {
+	const address = req.params.address;
+	const addressData = bitcoin.getAddressData(address);
+	res.json({
+		addressData: addressData
+	});
+});
+
+// block explorer
+// router.get('/block-explorer', function(req, res) {
+// 	res.sendFile('./block-explorer/index.html', { root: __dirname });
+// });
+
+
 module.exports = router;
